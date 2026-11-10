@@ -1,0 +1,5 @@
+numpy
+matplotlib
+pandas
+altair>=5
+streamlit>=1.40

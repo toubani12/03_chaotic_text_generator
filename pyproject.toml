@@ -1,0 +1,23 @@
+[project]
+name = "03-chaotic-text-generator"
+version = "0.1.0"
+description = "Lab 03: a test bench for text generators (POS-HMM, role-split and second-order HMMs, trigram) with a Streamlit UI"
+readme = "README.md"
+authors = [
+    { name = "BADR EDDINE TOUBANI", email = "158719657+toubani12@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "altair>=5",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pandas>=3.1.1",
+    "streamlit>=1.40",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+# An application, not an installable package: no [build-system], so `uv sync` only installs the dependencies.
+[tool.uv]
+package = false

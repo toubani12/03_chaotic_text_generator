@@ -1,0 +1,85 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Lab 03 report</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'DM Sans', Helvetica, Arial, sans-serif; color: #1a1a1a; font-size: 8.7pt; line-height: 1.38; }
+.page { width: 210mm; height: 297mm; padding: 11mm 13mm 9mm; overflow: hidden; }
+header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid #111; padding-bottom: 2.2mm; }
+h1 { font-size: 15pt; margin: 0; font-weight: 600; letter-spacing: -.01em; }
+.meta { text-align: right; color: #555; font-size: 7.8pt; line-height: 1.4; }
+.meta a { color: #1a1a1a; }
+h2 { font-size: 9.6pt; font-weight: 600; margin: 3.2mm 0 1mm; }
+p { margin: 0 0 1.4mm; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 7mm; }
+table { width: 100%; border-collapse: collapse; margin: 1mm 0 1.6mm; font-size: 8pt; }
+th { text-align: right; font-weight: 500; color: #555; border-bottom: 1px solid #222; padding: .8mm 1.2mm; }
+td { text-align: right; padding: .75mm 1.2mm; border-bottom: .5px solid #d6d6d6; }
+th:first-child, td:first-child { text-align: left; }
+tr.ext td { color: #666; }
+ul { margin: 0 0 1.4mm 4mm; padding: 0; } li { margin-bottom: .7mm; }
+.ex { border-left: 2px solid #111; padding: .3mm 0 .3mm 2.5mm; margin: 1.2mm 0; }
+.ex q { font-weight: 500; quotes: "\201C" "\201D"; }
+.tag { display: inline-block; font-size: 7pt; border: 1px solid #111; border-radius: 6px; padding: 0 1.4mm; margin-right: 1mm; }
+footer { margin-top: 2mm; color: #777; font-size: 7pt; border-top: .5px solid #ccc; padding-top: 1.2mm; }
+</style></head><body><div class="page">
+<header><div><h1>Lab 03: Chaotic Text Generator</h1>
+<div style="color:#555">Badr Eddine Toubani, Master SDIA, ENSET</div></div>
+<div class="meta">Repository: <a href="https://github.com/toubani12/chaotic-text-generator">https://github.com/toubani12/chaotic-text-generator</a><br>Application: <a href="https://<your-app>.streamlit.app">https://&lt;your-app&gt;.streamlit.app</a></div></header>
+
+<h2>Problem and solution</h2>
+<p>A generated sentence has no reference answer, so a text generator cannot be judged from a few examples. We built a
+web test bench that samples hundreds of sentences from a part-of-speech HMM (plain, role-split or second-order states)
+or from a trigram model, shows the hidden tag path behind each sentence, and scores every batch with four metrics. A
+Viterbi tagger recovers the tags of any typed sentence. The same HMM is then tested on real English (UD English EWT)
+to see how far the synthetic results transfer.</p>
+
+<div class="cols"><div>
+<h2>Metrics at T = 1.0 (500 sentences, seed 42)</h2>
+<table><tr><th>Model</th><th>Valid pattern</th><th>Plausible S-V</th><th>Novel</th><th>Distinct-2</th></tr><tr><td>HMM, plain states</td><td>16.2%</td><td>14.8%</td><td>99.8%</td><td>0.198</td></tr><tr><td>HMM, role-split states</td><td>100.0%</td><td>60.6%</td><td>99.4%</td><td>0.148</td></tr><tr><td>Trigram</td><td>57.0%</td><td>76.0%</td><td>91.2%</td><td>0.105</td></tr><tr class=ext><td>HMM, second order (extension)</td><td>20.0%</td><td>13.8%</td><td>99.8%</td><td>0.201</td></tr></table>
+<p><b>Plain HMM, 16.2%.</b> A first-order model only knows the previous tag. After a NOUN it moves
+to VERB (0.39), PREP (0.22) or PUNCT (0.39) whatever
+the role of the noun, so a subject can end the sentence before the verb and an object can take a second verb.</p>
+<p><b>Role-split HMM, 100.0%.</b> NOUN_S is always followed by VERB, NOUN_O by PREP or PUNCT and
+NOUN_P by PUNCT: every path the model can sample is one of the 16 training patterns. The second-order HMM reaches only
+20.0%, because the pair (DET, NOUN) is the same for a subject and an object.</p>
+</div><div>
+<h2>Choice of temperature</h2>
+<ul><li><b>Writing toy: role-split HMM at T = 1.5.</b> Structure stays at 100.0%
+while distinct-2 rises to 0.161 (from 0.148 at
+T = 1.0); surprising word pairs are acceptable in a toy.</li>
+<li><b>Autocomplete: trigram at T = 0.5.</b> It is the only model that continues the user's words, and a low temperature
+gives the most predictable continuation (63.6% valid patterns, against
+44.2% at T = 2.5).</li></ul>
+<h2>Two generated sentences</h2>
+<div class="ex"><span class="tag">good</span><q>the teachers eat the birds near the river .</q> (role-split HMM, T = 1.0): valid
+pattern, subject-verb pair seen in training, not copied.</div>
+<div class="ex"><span class="tag">bad: structure</span><q>the quiet school .</q> (plain HMM, T = 1.0): the tag path
+DET ADJ NOUN PUNCT is not a sentence. Cause: after the NOUN the model chose PUNCT (probability
+0.39) without knowing that no verb had been produced yet.</div>
+<p style="color:#555">Other failure types seen: meaning, a valid pattern with an odd pair (39.4%
+of role-split sentences); memorisation, <q>the children visit the garden .</q> copied by the trigram at T = 0.5.</p>
+</div></div>
+
+<h2>What state splitting changed, and what it did not</h2>
+<p>Splitting NOUN, ADJ and DET by role gives the first-order model the memory it lacked: where it is in the sentence.
+Valid tag patterns rise from 16.2% to 100.0% and plausible subject-verb
+pairs from 14.8% to 60.6%, because subject nouns are now drawn
+only from subject positions. It did not add meaning: nouns and verbs are still drawn independently, so the trigram stays
+better on plausibility (76.0%); diversity drops (distinct-2 0.148 against
+0.198); tagging accuracy was already 100%; and the states are written by hand for this grammar.</p>
+
+<h2>Synthetic corpus against real text (UD English EWT, 12,544 training and
+2,077 test sentences)</h2>
+<table><tr><th>Model</th><th>Accuracy</th><th>Known words</th><th>Unknown words</th><th>Whole sentence</th></tr><tr><td>HMM + Viterbi, synthetic corpus</td><td>100%</td><td>100%</td><td>no unknown words</td><td>100%</td></tr><tr><td>Most-frequent tag, EWT</td><td>86.2%</td><td>90.8%</td><td>28.6%</td><td>31.9%</td></tr><tr><td>HMM + Viterbi, EWT</td><td>88.0%</td><td>92.9%</td><td>28.2%</td><td>40.4%</td></tr><tr class=ext><td>HMM + suffix guessing, EWT (extension)</td><td>91.2%</td><td>93.3%</td><td>64.3%</td><td>49.0%</td></tr></table>
+<p>The synthetic grammar is unambiguous once the previous tag is known and every test word is in the 61-word vocabulary,
+so Viterbi is perfect. On real text the HMM gains only 1.9 points over the
+most-frequent-tag baseline. Unknown words (7.5% of tokens) are tagged correctly only
+28.2% of the time: the smoothed emission k / (count + k·V) is largest for rare tags, so unknown proper
+nouns become X or INTJ. With 10,359 distinct tag sequences, the valid-pattern
+metric has no meaning on real text. Guessing unknown words from their suffix raises unknown-word accuracy to 64.3%.
+The guide lists 88.1% for the HMM; the current treebank download gives 88.0% with the unchanged code.</p>
+<footer>The corpus is synthetic and the grammar is tiny; metrics such as valid tag pattern are defined relative to this
+corpus and do not measure the quality of real English. All numbers are produced by the application and by
+src/evaluate.py and src/evaluate_real.py.</footer>
+</div></body></html>
